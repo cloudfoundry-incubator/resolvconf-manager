@@ -1,0 +1,14 @@
+---
+platform: linux
+
+image_resource:
+  type: registry-image
+  source:
+    repository: bosh/resolvconf-manager
+
+inputs:
+- name: resolvconf-manager-src
+
+run:
+  path: resolvconf-manager-src/ci/tasks/test-unit.sh
+
