@@ -24,6 +24,7 @@ ENV GOPATH /root/go
 RUN mkdir -p /root/go/bin
 ENV PATH $PATH:/usr/local/go/bin:$GOPATH/bin
 RUN go get -u github.com/onsi/ginkgo/ginkgo && \
-    go get -u github.com/onsi/gomega/...
+    go get -u github.com/onsi/gomega/... && \
+    go install github.com/onsi/ginkgo/ginkgo
 
 ADD mount-etc-resolv.conf.sh /
