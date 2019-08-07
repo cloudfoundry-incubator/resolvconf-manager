@@ -22,12 +22,6 @@ const DeviceResourceBusy = "Device or resource busy"
 const UnableLocatePackage = "Unable to locate package"
 
 var _ = Describe("Main", func() {
-	BeforeEach(func() {
-		dat, err := ioutil.ReadFile("/etc/resolv.conf")
-		Expect(err).NotTo(HaveOccurred())
-		fmt.Println(string(dat))
-	})
-
 	Context("IsResolvconf", func() {
 		BeforeEach(func() {
 			err := InstallResolvConf()
@@ -98,9 +92,6 @@ Update resolv.conf to have the address provided as the first entry in /etc/resol
 			Expect(err).NotTo(HaveOccurred())
 			err = PurgePackage("resolvconf")
 			Expect(err).NotTo(HaveOccurred())
-		})
-
-		AfterEach(func() {
 		})
 
 		It("detects the openresolv package is installed", func() {
