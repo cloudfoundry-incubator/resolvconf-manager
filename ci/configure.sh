@@ -1,12 +1,18 @@
 #!/usr/bin/env bash
 
-set -ex
-  lpass status
-set +ex
-
 dir=$(dirname $0)
 
-fly -t ${CONCOURSE_TARGET:-production} \
+until lpass status;do
+  LPASS_DISABLE_PINENTRY=1 lpass ls a
+  sleep 1
+done
+
+until fly -t production status;do
+  fly -t production login
+  sleep 1
+done
+
+fly -t production \
   sp -p resolvconf-manager \
   -l <(lpass show --notes 'resolvconf-manager pipeline vars') \
   -c $dir/pipeline.yml
