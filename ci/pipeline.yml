@@ -11,6 +11,45 @@ jobs:
       privileged: true
       file: resolvconf-manager-src/ci/tasks/test-unit.yml
 
+- name: promote
+  public: true
+  plan:
+    - get: resolvconf-manager-src
+      passed:
+      - test-unit
+    - task: build
+      config:
+        platform: linux
+        image_resource:
+          type: registry-image
+          source:
+            repository: bosh/resolvconf-manager
+        inputs:
+        - name: resolvconf-manager-src
+        outputs:
+        - name: resolvconf-manager
+        - name: resolvconf-manager-shasum
+        run:
+          path: /bin/bash
+          args:
+          - -cex
+          - |
+            set -o pipefail
+            pushd resolvconf-manager-src/
+              go build -o ../resolvconf-manager/resolvconf-manager
+            popd
+            pushd resolvconf-manager
+              sha256sum resolvconf-manager | tee ../resolvconf-manager-shasum/shasum
+            popd
+    - put: resolvconf-manager-bucket
+      params:
+        file: "resolvconf-manager/resolvconf-manager"
+        acl: public-read
+    - put: resolvconf-manager-shasum
+      params:
+        file: "resolvconf-manager-shasum/shasum"
+        acl: public-read
+
 - name: build-dockerfile
   public: true
   serial: true
@@ -54,3 +93,21 @@ resources:
     email: ((dockerhub_email))
     username: ((dockerhub_username))
     password: ((dockerhub_password))
+
+- name: resolvconf-manager-bucket
+  type: s3
+  source:
+    versioned_file: resolvconf-manager
+    bucket: bosh-resolvconf-manager
+    region_name: us-west-1
+    access_key_id: ((aws_bucket_access_key_id))
+    secret_access_key: ((aws_bucket_secret_access_key))
+
+- name: resolvconf-manager-shasum
+  type: s3
+  source:
+    versioned_file: resolvconf-manager.sha256
+    bucket: bosh-resolvconf-manager
+    region_name: us-west-1
+    access_key_id: ((aws_bucket_access_key_id))
+    secret_access_key: ((aws_bucket_secret_access_key))
