@@ -15,4 +15,5 @@ done
 fly -t production \
   sp -p resolvconf-manager \
   -l <(lpass show --notes 'resolvconf-manager pipeline vars') \
+  -l <(lpass show --notes 'bosh-cli:docker-images concourse secrets') \
   -c $dir/pipeline.yml

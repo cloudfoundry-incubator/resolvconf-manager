@@ -6,23 +6,51 @@ jobs:
     - get: weekly
       trigger: true
     - get: resolvconf-manager-src
+      trigger: true
     - task: test-unit
       privileged: true
       file: resolvconf-manager-src/ci/tasks/test-unit.yml
+
+- name: build-dockerfile
+  public: true
+  serial: true
+  plan:
+    - get: dockerfile
+      trigger: true
+    - put: resolvconf-manager-docker-image
+      params:
+        build: "dockerfile/ci/docker"
+      get_params:
+        skip_download: true
 
 resources:
 - name: weekly
   type: time
   source:
-    start: 3:00 -0700
-    stop: 4:30 -0700
-    days: [Saturday]
+    interval: 168h
 
 - name: resolvconf-manager-src
   type: git
   source:
     uri: git@github.com:cloudfoundry-incubator/resolvconf-manager
     branch: master
-    private_key: {{github_deployment_private_key}}
+    private_key: ((github_deployment_private_key))
     ignore_paths:
     - ci/docker
+
+- name: dockerfile
+  type: git
+  source:
+    uri: git@github.com:cloudfoundry-incubator/resolvconf-manager
+    branch: master
+    private_key: ((github_deployment_private_key))
+    paths:
+    - ci/docker
+
+- name: resolvconf-manager-docker-image
+  type: docker-image
+  source:
+    repository: bosh/resolvconf-manager
+    email: ((dockerhub_email))
+    username: ((dockerhub_username))
+    password: ((dockerhub_password))
