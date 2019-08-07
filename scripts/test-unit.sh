@@ -3,8 +3,11 @@
 set -eu
 set -o pipefail
 
-source .envrc
+source_code=$(dirname $0)/..
+source ${source_code}/.envrc
 {
   go mod tidy && go mod verify
 } &> /dev/null
-ginkgo -v --race --randomizeAllSpecs
+pushd ${source_code}
+  ginkgo -v --race --randomizeAllSpecs
+popd
