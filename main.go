@@ -1,12 +1,14 @@
 package main
 
 import (
+	"flag"
 	"fmt"
 	"io/ioutil"
 	"log"
 	"os"
 	"os/exec"
 	"regexp"
+	"strings"
 
 	"github.com/pkg/errors"
 )
@@ -14,18 +16,18 @@ import (
 var nameserverLineRegex = regexp.MustCompile("^nameserver (.+)")
 
 const ResolvConfHeadFile = "/etc/resolvconf/resolv.conf.d/head"
+const ResolvConfBaseFile = "/etc/resolvconf/resolv.conf.d/base"
 const OpenResolvConfFile = "/etc/resolvconf.conf"
 
 func main() {
-	if len(os.Args) != 2 {
-		fmt.Print(`resolvconf-manager [address]
-
-Update resolv.conf to have the address provided as the first entry in /etc/resolv.conf
-`)
+	head, base, err := parseArgs()
+	if err != nil {
+		flag.Usage()
 		os.Exit(1)
 	}
 
-	address := os.Args[1]
+	headAddress := *head
+	baseAddresses := *base
 
 	isResolvconf, err := IsResolvconf()
 	if err != nil {
@@ -37,30 +39,40 @@ Update resolv.conf to have the address provided as the first entry in /etc/resol
 		log.Fatalf("Error occurred while checking for '%s': %s", OpenResolvConfFile, err)
 	}
 
-	fmt.Printf(`
-IsResolvconf: %v
-IsOpenresolv: %v
-`, isResolvconf, isOpenresolv)
-
 	switch {
 	case isResolvconf:
-		err := WriteResolvConfHead(address)
+		err := WriteResolvConfHead(headAddress)
 		if err != nil {
 			log.Fatalf("Error occurred while writing '%s': %v", ResolvConfHeadFile, err)
 		}
+		err = WriteResolvConfBase(baseAddresses)
+		if err != nil {
+			log.Fatalf("Error occurred while writing '%s': %v", ResolvConfBaseFile, err)
+		}
 	case isOpenresolv:
-		err := WriteOpenResolvConf(address)
+		err := WriteOpenResolvConf(headAddress)
 		if err != nil {
 			log.Fatalf("Error occurred while writing '%s': %v", ResolvConfHeadFile, err)
 		}
 	}
 
-	// call `resolvconf -u`
 	cmd := exec.Command("resolvconf", "-u")
 	output, err := cmd.CombinedOutput()
 	if err != nil {
 		log.Fatalf("Error while runnning resolvconf -u '%s': %s", err, output)
 	}
+}
+
+func parseArgs() (*string, *string, error) {
+	head := flag.String("head", "", "address to prepend as first nameserver")
+	base := flag.String("base", "", "address to append as a nameserver")
+	flag.Parse()
+
+	if *head == "" && *base == "" {
+		return nil, nil, errors.New("either 'head' or 'base' is required")
+	}
+
+	return head, base, nil
 }
 
 func IsResolvconf() (bool, error) {
@@ -83,6 +95,10 @@ func exists(path string) (bool, error) {
 }
 
 func WriteResolvConfHead(address string) error {
+	if address == "" {
+		return nil
+	}
+
 	contents := fmt.Sprintf(
 		`# This file was automatically updated by bosh-dns
 
@@ -90,6 +106,21 @@ nameserver %s
 `, address)
 
 	return writeFile(ResolvConfHeadFile, contents)
+}
+
+func WriteResolvConfBase(addresses string) error {
+	if addresses == "" {
+		return nil
+	}
+
+	as := strings.Split(addresses, ",")
+	nas := []string{}
+	for _, a := range as {
+		nas = append(nas, fmt.Sprintf("nameserver %s", a))
+	}
+	contents := strings.Join(nas, "\n")
+
+	return writeFile(ResolvConfBaseFile, contents)
 }
 
 func WriteOpenResolvConf(address string) error {
