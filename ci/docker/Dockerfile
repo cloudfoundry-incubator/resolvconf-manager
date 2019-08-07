@@ -23,5 +23,7 @@ RUN rm -rf /var/lib/apt/lists/*
 ENV GOPATH /root/go
 RUN mkdir -p /root/go/bin
 ENV PATH $PATH:/usr/local/go/bin:$GOPATH/bin
+RUN go get -u github.com/onsi/ginkgo/ginkgo && \
+    go get -u github.com/onsi/gomega/...
 
 ADD mount-etc-resolv.conf.sh /
