@@ -1,8 +1,10 @@
 #!/bin/bash
 
-set -eux
+set -eu
 set -o pipefail
 
 source .envrc
-go mod tidy && go mod verify
+{
+  go mod tidy && go mod verify
+} &> /dev/null
 ginkgo -v --race --randomizeAllSpecs

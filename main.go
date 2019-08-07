@@ -5,6 +5,7 @@ import (
 	"io/ioutil"
 	"log"
 	"os"
+	"os/exec"
 	"regexp"
 
 	"github.com/pkg/errors"
@@ -12,47 +13,62 @@ import (
 
 var nameserverLineRegex = regexp.MustCompile("^nameserver (.+)")
 
-const ResolvConfHeadFile = "/etc/resolvconf/resolv.conf.d"
+const ResolvConfHeadFile = "/etc/resolvconf/resolv.conf.d/head"
 const OpenResolvConfFile = "/etc/resolvconf.conf"
 
-const address = "99.99.99.99"
-
 func main() {
+	if len(os.Args) != 2 {
+		fmt.Print(`resolvconf-manager [address]
+
+Update resolv.conf to have the address provided as the first entry in /etc/resolv.conf
+`)
+		os.Exit(1)
+	}
+
+	address := os.Args[1]
+
+	isResolvconf, err := IsResolvconf()
+	if err != nil {
+		log.Fatalf("Error occurred while checking for '%s': %s", ResolvConfHeadFile, err)
+	}
+
+	isOpenresolv, err := IsOpenresolv()
+	if err != nil {
+		log.Fatalf("Error occurred while checking for '%s': %s", OpenResolvConfFile, err)
+	}
+
 	fmt.Printf(`
 IsResolvconf: %v
 IsOpenresolv: %v
-`, IsResolvconf(), IsOpenresolv())
+`, isResolvconf, isOpenresolv)
 
 	switch {
-	case IsResolvconf():
-		err := WriteResolvConfHead()
+	case isResolvconf:
+		err := WriteResolvConfHead(address)
 		if err != nil {
 			log.Fatalf("Error occurred while writing '%s': %v", ResolvConfHeadFile, err)
 		}
-	case IsOpenresolv():
-		err := WriteOpenResolvConf()
+	case isOpenresolv:
+		err := WriteOpenResolvConf(address)
 		if err != nil {
 			log.Fatalf("Error occurred while writing '%s': %v", ResolvConfHeadFile, err)
 		}
 	}
 
 	// call `resolvconf -u`
+	cmd := exec.Command("resolvconf", "-u")
+	output, err := cmd.CombinedOutput()
+	if err != nil {
+		log.Fatalf("Error while runnning resolvconf -u '%s': %s", err, output)
+	}
 }
 
-func IsResolvconf() bool {
-	is, err := exists(ResolvConfHeadFile)
-	if err != nil {
-		log.Fatalf("Error occurred while checking for '%s': %v", ResolvConfHeadFile, err)
-	}
-	return is
+func IsResolvconf() (bool, error) {
+	return exists(ResolvConfHeadFile)
 }
 
-func IsOpenresolv() bool {
-	is, err := exists(OpenResolvConfFile)
-	if err != nil {
-		log.Fatalf("Error occurred while checking for '%s': %v", OpenResolvConfFile, err)
-	}
-	return is
+func IsOpenresolv() (bool, error) {
+	return exists(OpenResolvConfFile)
 }
 
 func exists(path string) (bool, error) {
@@ -66,7 +82,7 @@ func exists(path string) (bool, error) {
 	return true, err
 }
 
-func WriteResolvConfHead() error {
+func WriteResolvConfHead(address string) error {
 	contents := fmt.Sprintf(
 		`# This file was automatically updated by bosh-dns
 
@@ -76,7 +92,7 @@ nameserver %s
 	return writeFile(ResolvConfHeadFile, contents)
 }
 
-func WriteOpenResolvConf() error {
+func WriteOpenResolvConf(address string) error {
 	contents := fmt.Sprintf(
 		`resolv_conf=/etc/resolv.conf
 name_servers=%s`, address)
