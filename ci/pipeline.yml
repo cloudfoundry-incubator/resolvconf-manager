@@ -17,6 +17,11 @@ jobs:
     - get: resolvconf-manager-src
       passed:
       - test-unit
+    - get: version-semver
+      params: {bump: minor}
+    - put: version-semver
+      params:
+        file: version-semver/number
     - task: build
       config:
         platform: linux
@@ -38,17 +43,11 @@ jobs:
             pushd resolvconf-manager-src/
               go build -o ../resolvconf-manager/resolvconf-manager
             popd
-            pushd resolvconf-manager
-              sha256sum resolvconf-manager | tee ../resolvconf-manager-shasum/shasum
-            popd
-    - put: resolvconf-manager-bucket
+    - put: resolvconf-manager-index
       params:
-        file: "resolvconf-manager/resolvconf-manager"
-        acl: public-read
-    - put: resolvconf-manager-shasum
-      params:
-        file: "resolvconf-manager-shasum/shasum"
-        acl: public-read
+        files:
+        - "resolvconf-manager/resolvconf-manager"
+        version: version-semver/number
 
 - name: build-dockerfile
   public: true
@@ -94,20 +93,32 @@ resources:
     username: ((dockerhub_username))
     password: ((dockerhub_password))
 
-- name: resolvconf-manager-bucket
-  type: s3
+- name: resolvconf-manager-index
+  type: metalink-resource
   source:
-    versioned_file: resolvconf-manager
+    uri: git+ssh://git@github.com:cloudfoundry-incubator/resolvconf-manager-index.git//
+    mirror_files:
+    - destination: s3://s3.us-west-1.amazonaws.com/bosh-resolvconf-manager/{{.Name}}
+    options:
+      private_key: ((index_github_deployment_key))
+    url_handlers:
+    - type: s3
+      options:
+        access_key: ((aws_bucket_access_key_id))
+        secret_key: ((aws_bucket_secret_access_key))
+
+- name: version-semver
+  type: semver
+  source:
+    initial_version: 0.0.1
+    key: resolvconf-manager-version
     bucket: bosh-resolvconf-manager
     region_name: us-west-1
     access_key_id: ((aws_bucket_access_key_id))
     secret_access_key: ((aws_bucket_secret_access_key))
 
-- name: resolvconf-manager-shasum
-  type: s3
+resource_types:
+- name: metalink-resource
+  type: registry-image
   source:
-    versioned_file: resolvconf-manager.sha256
-    bucket: bosh-resolvconf-manager
-    region_name: us-west-1
-    access_key_id: ((aws_bucket_access_key_id))
-    secret_access_key: ((aws_bucket_secret_access_key))
+    repository: dpb587/metalink-repository-resource
