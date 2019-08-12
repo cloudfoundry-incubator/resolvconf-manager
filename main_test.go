@@ -17,6 +17,29 @@ const UnableLocatePackage = "Unable to locate package"
 const stubResolvConfDirectory = "/dir"
 
 var _ = Describe("Main", func() {
+	Context("ValidateIP", func() {
+		It("returns true when given a valid (IPv4, IPv6) address", func() {
+			ipv4 := "4.4.4.4"
+			ipv6 := "2001:db8::68"
+
+			Expect(ValidateIP(ipv4)).To(BeTrue())
+			Expect(ValidateIP(ipv6)).To(BeTrue())
+		})
+
+		It("returns false when given a invalid (IPv4, IPv6) address", func() {
+			invalidIPv4 := []string{"256.256.256.256", "-1.1.1.1", "", "4", "2.2", "13.37.h4.x0rz"}
+			for _, ip := range invalidIPv4 {
+				Expect(ValidateIP(ip)).To(BeFalse())
+			}
+
+			// Source: http://www.ronnutter.com/ipv6-cheatsheet-on-identifying-valid-ipv6-addresses/
+			invalidIPv6 := []string{"1200::AB00:1234::2552:7777:1313", "1200:0000:AB00:1234:O000:2552:7777:1313", ""}
+			for _, ip := range invalidIPv6 {
+				Expect(ValidateIP(ip)).To(BeFalse())
+			}
+		})
+	})
+
 	Context("IsResolvconf", func() {
 		BeforeEach(func() {
 			err := installResolvConf()

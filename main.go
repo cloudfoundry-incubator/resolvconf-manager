@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"io/ioutil"
 	"log"
+	"net"
 	"os"
 	"os/exec"
 	"regexp"
@@ -72,7 +73,19 @@ func parseArgs() (*string, *string, error) {
 		return nil, nil, errors.New("either 'head' or 'base' is required")
 	}
 
+	if *head != "" && !ValidateIP(*head) {
+		return nil, nil, fmt.Errorf("ip address '%s' is not valid", *head)
+	}
+
+	if *base != "" && !ValidateIP(*base) {
+		return nil, nil, fmt.Errorf("ip address '%s' is not valid", *base)
+	}
+
 	return head, base, nil
+}
+
+func ValidateIP(ip string) bool {
+	return net.ParseIP(ip) != nil
 }
 
 func IsResolvconf() (bool, error) {
