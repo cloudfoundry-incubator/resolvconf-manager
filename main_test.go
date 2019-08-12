@@ -135,6 +135,22 @@ var _ = Describe("Main", func() {
 			Expect(err).NotTo(HaveOccurred())
 			Eventually(session).Should(gexec.Exit(1))
 		})
+
+		It("errors if input is empty string", func() {
+			cli, err := gexec.Build("github.com/cloudfoundry-incubator/resolvconf-manager")
+			Expect(err).NotTo(HaveOccurred())
+			cmd := exec.Command(cli, "-head", "")
+			session, err := gexec.Start(cmd, ioutil.Discard, ioutil.Discard)
+			Expect(err).NotTo(HaveOccurred())
+			Eventually(session).Should(gexec.Exit(1))
+
+			cli, err = gexec.Build("github.com/cloudfoundry-incubator/resolvconf-manager")
+			Expect(err).NotTo(HaveOccurred())
+			cmd = exec.Command(cli, "-base", "")
+			session, err = gexec.Start(cmd, ioutil.Discard, ioutil.Discard)
+			Expect(err).NotTo(HaveOccurred())
+			Eventually(session).Should(gexec.Exit(1))
+		})
 	})
 
 	Context("IsOpenresolv", func() {
