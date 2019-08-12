@@ -73,12 +73,14 @@ func parseArgs() (*string, *string, error) {
 		return nil, nil, errors.New("either 'head' or 'base' is required")
 	}
 
-	if *head != "" && !ValidateIP(*head) {
-		return nil, nil, fmt.Errorf("ip address '%s' is not valid", *head)
-	}
+	// We want to validate all the IP addresses at once.
+	ips := splitIP(*head)
+	ips = append(ips, splitIP(*base)...)
 
-	if *base != "" && !ValidateIP(*base) {
-		return nil, nil, fmt.Errorf("ip address '%s' is not valid", *base)
+	for _, ip := range ips {
+		if !ValidateIP(ip) {
+			return nil, nil, fmt.Errorf("ip address '%s' is not valid", ip)
+		}
 	}
 
 	return head, base, nil
@@ -86,6 +88,13 @@ func parseArgs() (*string, *string, error) {
 
 func ValidateIP(ip string) bool {
 	return net.ParseIP(ip) != nil
+}
+
+func splitIP(ip string) []string {
+	if ip == "" {
+		return nil
+	}
+	return strings.Split(ip, ",")
 }
 
 func IsResolvconf() (bool, error) {
