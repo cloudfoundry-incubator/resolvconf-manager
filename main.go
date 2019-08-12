@@ -23,6 +23,7 @@ const OpenResolvConfFile = "/etc/resolvconf.conf"
 func main() {
 	head, base, err := parseArgs()
 	if err != nil {
+		fmt.Fprintf(os.Stderr, "error occurred parsing input: %v\n", err)
 		flag.Usage()
 		os.Exit(1)
 	}
