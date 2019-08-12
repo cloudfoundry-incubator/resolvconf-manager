@@ -28,6 +28,13 @@ func main() {
 		os.Exit(1)
 	}
 
+	err = ValidateArgs(*head, *base)
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "invalid input: %v\n", err)
+		flag.Usage()
+		os.Exit(1)
+	}
+
 	headAddress := *head
 	baseAddresses := *base
 
@@ -74,20 +81,24 @@ func parseArgs() (*string, *string, error) {
 		return nil, nil, errors.New("either 'head' or 'base' is required")
 	}
 
-	// We want to validate all the IP addresses at once.
-	ips := splitIP(*head)
-	ips = append(ips, splitIP(*base)...)
-
-	for _, ip := range ips {
-		if !ValidateIP(ip) {
-			return nil, nil, fmt.Errorf("ip address '%s' is not valid", ip)
-		}
-	}
-
 	return head, base, nil
 }
 
-func ValidateIP(ip string) bool {
+func ValidateArgs(head, base string) error {
+	// We want to validate all the IP addresses at once.
+	ips := splitIP(head)
+	ips = append(ips, splitIP(base)...)
+
+	for _, ip := range ips {
+		if !validateIP(ip) {
+			return fmt.Errorf("ip address '%s' is not valid", ip)
+		}
+	}
+
+	return nil
+}
+
+func validateIP(ip string) bool {
 	return net.ParseIP(ip) != nil
 }
 
