@@ -64,8 +64,8 @@ func main() {
 }
 
 func parseArgs() (*string, *string, error) {
-	head := flag.String("head", "", "address to prepend as first nameserver")
-	base := flag.String("base", "", "address to append as a nameserver")
+	head := flag.String("head", "", "ip address to prepend as first nameserver")
+	base := flag.String("base", "", "ip address to append as a nameserver")
 	flag.Parse()
 
 	if *head == "" && *base == "" {
