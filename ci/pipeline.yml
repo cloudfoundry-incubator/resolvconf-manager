@@ -30,6 +30,7 @@ jobs:
           source:
             repository: bosh/resolvconf-manager
         inputs:
+        - name: version-semver
         - name: resolvconf-manager-src
         outputs:
         - name: resolvconf-manager
@@ -39,14 +40,15 @@ jobs:
           args:
           - -cex
           - |
+            version_semver="$(cat version-semver/number)"
             set -o pipefail
             pushd resolvconf-manager-src/
-              go build -o ../resolvconf-manager/resolvconf-manager
+              go build -o ../resolvconf-manager/resolvconf-manager-${version_semver}
             popd
     - put: resolvconf-manager-index
       params:
         files:
-        - "resolvconf-manager/resolvconf-manager"
+        - resolvconf-manager/*
         version: version-semver/number
 
 - name: build-dockerfile
