@@ -29,7 +29,7 @@ var _ = BeforeSuite(func() {
 func aptUpdate() error {
 	cmd := exec.Command("apt", "update")
 	ses, err := gexec.Start(cmd, ioutil.Discard, ioutil.Discard)
-	Eventually(ses, 1*time.Minute).Should(gexec.Exit(0))
+	Eventually(ses, 5*time.Minute).Should(gexec.Exit(0))
 	if err != nil {
 		return err
 	}
